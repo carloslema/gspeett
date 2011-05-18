@@ -1,12 +1,17 @@
+import sys
+from datetime import datetime
+import logging
+
+# Sound related
 import pyaudio
 import speex
-import sys
+import audioop
+
+# Web related
 import urllib2
 import urllib
 import json
 import re, htmlentitydefs
-from datetime import datetime
-import logging
 
 GSPEETT_VERSION="1.2"
 
@@ -109,6 +114,11 @@ class GoogleVoiceRecognition:
         self._speex_encoder = speex.Encoder()
         self._speex_encoder.initialize(speex.SPEEX_MODEID_WB, quality = 8, vbr = 1) # Initialize encoder as in Google Chromium (-> audio_encoder.cc): wide band, q8, vbr
 
+        self.VOLUME_THRESHOLD = 70 # Volume threshold, for silence detection
+        self.SECONDS_SILENCE_BEFORE_STOP = 0.6 #After this amount of detected silence, the mic recording stops
+        
+        self._SILENCE_SAMPLE_BUFFER_SIZE = 30 #Amount of sample to observe before positively detecting a silence.
+        
         # pyaudio constants
         self.samples_per_packet = 320
         
@@ -120,7 +130,8 @@ class GoogleVoiceRecognition:
         self._logger.debug("Init mic input")
         FORMAT = pyaudio.paInt16
         CHANNELS = 1
-
+        
+        
         self._pyaudio = pyaudio.PyAudio()
 
         self._stream = self._pyaudio.open(format = FORMAT,
@@ -135,18 +146,58 @@ class GoogleVoiceRecognition:
         self._logger.debug("Ready to record")
 
 
-    def mic(self, seconds=2):
+    def mic(self, seconds=0):
+        """ Starts a recording session of the microphone.
+        
+        If 'seconds' is given and superior to 0, the recording lasts for the given
+        amount of time.
+        Else, the recording stops when a silence longer than SECONDS_SILENCE_BEFORE_STOP
+        is detected.
+        """
         
         if not self._mic_isinit:
             self.init_mic()
+        
+        auto_detect_end = True if seconds == 0 else False
 
-        self._logger.debug("Recording for " + str(seconds) + "s...")
+        # Only useful if auto_detect_end == True
+        _samples_before_stop = int(self.SAMPLING_RATE / self.samples_per_packet * self.SECONDS_SILENCE_BEFORE_STOP)
+        _sample_buffer = self._SILENCE_SAMPLE_BUFFER_SIZE >> 1 # Half the sample amount to start with
+        _sample_eater = 0
 
+        if auto_detect_end:
+            seconds = 6
+            self._logger.debug("Recording... (" + str(seconds) + "s max)")
+        else:
+            self._logger.debug("Recording for " + str(seconds) + "s...")
+        
+        
         encoded_stream = "" 
-
+        
         for i in range(0, seconds * self.SAMPLING_RATE / self.samples_per_packet ):
-                data = self._stream.read(self.samples_per_packet)       #Read data from the mic.
-                encoded_stream += self._speex_encoder.encode_with_header_byte(data)        #Encode the data.
+            
+            _sample_buffer = max(0, _sample_buffer - _sample_eater)
+            
+            data = self._stream.read(self.samples_per_packet)       #Read data from the mic.
+            
+            level = audioop.rms(data, 2) # 2 because of paInt16
+            
+            if level < self.VOLUME_THRESHOLD:
+                _sample_eater = 1 # Will empty the _sample_buffer
+            else:
+                if _sample_buffer < self._SILENCE_SAMPLE_BUFFER_SIZE:
+                    _sample_eater = -2 # Will fill the _sample_buffer
+                else:
+                    _sample_eater = 0
+            
+            if _sample_buffer == 0:
+                #Silence!!
+                if auto_detect_end:
+                    if not _samples_before_stop:
+                        break
+                    _samples_before_stop -= 1
+            else:    
+                encoded_stream += self._speex_encoder.encode_with_header_byte(data) #Encode the data.
 
         t0 = datetime.now()
         res = self.request_recognition(encoded_stream, SPEEX_CONTENT)

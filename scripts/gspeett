@@ -24,7 +24,7 @@ gspeett [OPTIONS]
   -f, --flac=			Specifies a FLAC 16kHZ encoded file to convert
   -m, --micro			Records from the microphone (default)
   --duration=			Recording duration, in seconds
-             			(only with microphone, default: 2)
+             			(only with microphone, default: auto)
   --continuous			Records and recognizes in loop
   -l, --lang=			Sets the input speech language (default: en-US)
   --output-lang=		Sets the text output language (default: en-US)
@@ -37,6 +37,9 @@ The result of the conversion is output on stdout.
 Options details:
   -d: prints some debug informations.
   -f: allows to pass a FLAC file instead of recording from the microphone
+  --duration: when using the microphone, specifies the length of the recording
+              in seconds. If not set, gSpeett will automatically try to detect
+              the end of the speech.
   -l: specify the input language (IETF language code. E.g.: fr-FR, de, en-US...)
   --output-lang: if different from the input language, attempts to translate
       the output using Google translate.
@@ -51,7 +54,7 @@ except getopt.GetoptError, err:
     usage()
     sys.exit(2)
 
-duration = 2
+duration = 0
 input_lang = "en-US"
 output_lang = "en-US"
 flac_path = None
