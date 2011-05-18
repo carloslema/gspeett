@@ -10,7 +10,7 @@ import logging
 GOOGLE_API_KEY= "AIzaSyCjUiaoRKX7BZ6twcQj0yW1Y6ElstWeELA"
 
 logger = logging.getLogger('gspeett')
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.INFO)
 
 
 def usage():
@@ -25,6 +25,7 @@ gspeett [OPTIONS]
   -m, --micro			Records from the microphone (default)
   --duration=			Recording duration, in seconds
              			(only with microphone, default: 2)
+  --continuous			Records and recognizes in loop
   -l, --lang=			Sets the input speech language (default: en-US)
   --output-lang=		Sets the text output language (default: en-US)
 
@@ -43,7 +44,7 @@ Options details:
 
 
 try:
-    optlist, args = getopt.getopt(sys.argv[1:], 'hvdf:ml:', ['help', 'version', 'debug', 'flac=', 'micro', 'duration=', 'demo', 'lang=', 'output-lang='])
+    optlist, args = getopt.getopt(sys.argv[1:], 'hvdf:ml:', ['help', 'version', 'debug', 'flac=', 'micro', 'duration=', 'continous', 'lang=', 'output-lang='])
 except getopt.GetoptError, err:
     # print help information and exit:
     print str(err) # will print something like "option -a not recognized"
@@ -54,6 +55,7 @@ duration = 2
 input_lang = "en-US"
 output_lang = "en-US"
 flac_path = None
+loop = False
 
 for o, a in optlist:
     if o in ("-h", "--help"):
@@ -70,6 +72,8 @@ for o, a in optlist:
         input_lang = a
     elif o in ("--duration"):
         duration = int(a)
+    elif o in ("--continous"):
+        loop = True
     elif o in ("--output-lang"):
         output_lang = a
     else:
@@ -96,21 +100,29 @@ if input_lang != output_lang:
 
 reco = gspeett.GoogleVoiceRecognition(input_lang)
 
-res = None
-if flac_path:
-    res = reco.flac(flac_path)
-else:
-    res = reco.mic(duration)
+while True:
+    res = None
+    if flac_path:
+        res = reco.flac(flac_path)
+    else:
+        res = reco.mic(duration)
 
-if logger.isEnabledFor(logging.DEBUG):
-    for s in res:
-        logger.debug("Got \"" + s + "\" in " + input_lang)
-        if need_translation:
-            logger.debug("-> \"" + t.translate(s) + "\" in " + output_lang)
-else:
-    if res:
-        if need_translation:
-            print(t.translate(res[0]))
-        else:
-            print(res[0])
+    if logger.isEnabledFor(logging.DEBUG):
+        for s in res:
+            logger.debug("Got \"" + s + "\" in " + input_lang)
+            if need_translation:
+                logger.debug("-> \"" + t.translate(s) + "\" in " + output_lang)
+    else:
+        if res:
+            if need_translation:
+                sys.stdout.write(t.translate(res[0]) + "\n")
+                sys.stdout.flush()
+            else:
+                sys.stdout.write(res[0] + "\n")
+                sys.stdout.flush()
+    
+    if not loop:
+        break
+    else:
+        logger.info("Starting over. Speak now.")
 
