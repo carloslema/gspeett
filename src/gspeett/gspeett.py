@@ -8,7 +8,7 @@ import re, htmlentitydefs
 from datetime import datetime
 import logging
 
-GSPEETT_VERSION=1.1
+GSPEETT_VERSION="1.2"
 
 RECOGNIZE_URL= "http://www.google.com/speech-api/v1/recognize?xjerr=1&client=chromium&pfilter=2&"
 

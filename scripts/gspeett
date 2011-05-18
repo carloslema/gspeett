@@ -14,7 +14,7 @@ logger.setLevel(logging.WARNING)
 
 
 def usage():
-    print """The LAAS-CNRS 'gSpett' module (v.""" + str(gspeett.GSPEETT_VERSION) + """).
+    print """The LAAS-CNRS 'gSpett' module (v.""" + gspeett.GSPEETT_VERSION + """).
 
 Usage:
 gspeett [OPTIONS]
@@ -24,14 +24,14 @@ gspeett [OPTIONS]
   -f, --flac=			Specifies a FLAC 16kHZ encoded file to convert
   -m, --micro			Records from the microphone (default)
   --duration=			Recording duration, in seconds
-                        (only with microphone, default: 2)
+             			(only with microphone, default: 2)
   -l, --lang=			Sets the input speech language (default: en-US)
   --output-lang=		Sets the text output language (default: en-US)
 
 Under default operation, this module records 2 seconds of voice from the system
 microphone, and submits it to the Google Speech Recognition service.
 
-The result of the conversion is outputted on stdout.
+The result of the conversion is output on stdout.
 
 Options details:
   -d: prints some debug informations.
@@ -60,7 +60,7 @@ for o, a in optlist:
         usage()
         sys.exit(0)
     elif o in ("-v", "--version"):
-        print("gSpeett - " + gspeett.GSPEETT_VERSION)
+        print("gSpeett " + gspeett.GSPEETT_VERSION)
         sys.exit(0)
     elif o in ("-d", "--debug"):
         logger.setLevel(logging.DEBUG)
