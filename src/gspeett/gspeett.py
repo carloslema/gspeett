@@ -161,19 +161,23 @@ class GoogleVoiceRecognition:
         auto_detect_end = True if seconds == 0 else False
 
         # Only useful if auto_detect_end == True
-        _samples_before_stop = int(self.SAMPLING_RATE / self.samples_per_packet * self.SECONDS_SILENCE_BEFORE_STOP)
-        _sample_buffer = self._SILENCE_SAMPLE_BUFFER_SIZE >> 1 # Half the sample amount to start with
+        _MAX_SAMPLES_BEFORE_STOP = int(self.SAMPLING_RATE / self.samples_per_packet * self.SECONDS_SILENCE_BEFORE_STOP)
+        _samples_before_stop = _MAX_SAMPLES_BEFORE_STOP
+        _sample_buffer = 0
         _sample_eater = 0
-
+        _recording_started = False
+        
+        encoded_stream = "" 
+        
+        for i in range(8):
+            self._stream.read(self.samples_per_packet) #Read some sample to let the mic settle down
+        
         if auto_detect_end:
             seconds = 6
             self._logger.debug("Recording... (" + str(seconds) + "s max)")
         else:
             self._logger.debug("Recording for " + str(seconds) + "s...")
-        
-        
-        encoded_stream = "" 
-        
+            
         for i in range(0, seconds * self.SAMPLING_RATE / self.samples_per_packet ):
             
             _sample_buffer = max(0, _sample_buffer - _sample_eater)
@@ -184,7 +188,12 @@ class GoogleVoiceRecognition:
             
             if level < self.VOLUME_THRESHOLD:
                 _sample_eater = 1 # Will empty the _sample_buffer
-            else:
+                
+            else: # Speech detected
+                if auto_detect_end:
+                    # Reset the amount of samples to wait before stopping
+                    _samples_before_stop = _MAX_SAMPLES_BEFORE_STOP
+                    
                 if _sample_buffer < self._SILENCE_SAMPLE_BUFFER_SIZE:
                     _sample_eater = -2 # Will fill the _sample_buffer
                 else:
@@ -193,10 +202,14 @@ class GoogleVoiceRecognition:
             if _sample_buffer == 0:
                 #Silence!!
                 if auto_detect_end:
-                    if not _samples_before_stop:
+                    if not _samples_before_stop and _recording_started:
                         break
                     _samples_before_stop -= 1
-            else:    
+            else:
+                if not _recording_started:
+                    self._logger.debug("Speaker started to speak!")
+                    _recording_started = True
+                    
                 encoded_stream += self._speex_encoder.encode_with_header_byte(data) #Encode the data.
 
         t0 = datetime.now()
