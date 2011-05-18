@@ -5,7 +5,7 @@ import os
 from distutils.core import setup
 
 setup(name='gSpeett',
-      version='1.0',
+      version='1.1',
       license='BSD',
       description='Python bindings to the Google speech recognition service',
       long_description='gSpeett offers a very simple Python API to the Google speech recognition service. It supports FLAC files or microphone input (with Speex encoding)',

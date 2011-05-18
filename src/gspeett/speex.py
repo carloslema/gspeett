@@ -1,5 +1,6 @@
 from ctypes import *
 import sys
+import logging
 
 speexDll = CDLL("/usr/lib/libspeex.so.1")
 
@@ -82,7 +83,7 @@ class Encoder:
         self.samples_per_frame = self.control(SPEEX_GET_FRAME_SIZE)
         if self.samples_per_frame <= 0:
             raise(Exception("SPEEX encoder returned 0 samples per frame"))
-        print("SPEEX: Samples per frame: " + str(self.samples_per_frame))
+        #print("SPEEX: Samples per frame: " + str(self.samples_per_frame))
 
         self.control(SPEEX_SET_VBR, vbr)
         self.control(SPEEX_SET_QUALITY, quality)

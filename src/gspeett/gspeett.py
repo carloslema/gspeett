@@ -6,6 +6,9 @@ import urllib
 import json
 import re, htmlentitydefs
 from datetime import datetime
+import logging
+
+GSPEETT_VERSION=1.1
 
 RECOGNIZE_URL= "http://www.google.com/speech-api/v1/recognize?xjerr=1&client=chromium&pfilter=2&"
 
@@ -27,10 +30,17 @@ FLAC_CONTENT= "audio/x-flac"
 class GoogleTranslator:
 
     def __init__(self, google_api_key, to = "en"):
+        if to:
+            to = to.split("-")[0] # convert en-US -> en
+            
         self.to = to
         self._key = google_api_key
 
     def translate(self, text, to=None):
+        
+        if to:
+            to = to.split("-")[0] # convert en-US -> en
+            
         text = text.decode('utf-8')
         text = text.encode('ascii', 'ignore')
         url = "https://www.googleapis.com/language/translate/v2?"
@@ -40,6 +50,7 @@ class GoogleTranslator:
                  "q": text})
 
         url += values
+        logging.getLogger('gspeett').debug(url)
         response = urllib2.urlopen(urllib2.Request(url))
 
         return self.unescape(urllib.unquote(json.load(response)['data']['translations'][0]['translatedText']))
@@ -81,6 +92,9 @@ class GoogleVoiceRecognition:
         self.lang = lang
         self._mic_isinit = False
         self._stream = None
+        self._logger = logging.getLogger('gspeett')
+        
+        self._logger.debug("Created a recognizer for " + lang)
         
     def __del__(self):
         if self._stream:
@@ -91,7 +105,7 @@ class GoogleVoiceRecognition:
 
     def init_mic(self):
 
-        print("Init speex")
+        self._logger.debug("Init speex")
         self._speex_encoder = speex.Encoder()
         self._speex_encoder.initialize(speex.SPEEX_MODEID_WB, quality = 8, vbr = 1) # Initialize encoder as in Google Chromium (-> audio_encoder.cc): wide band, q8, vbr
 
@@ -103,7 +117,7 @@ class GoogleVoiceRecognition:
         #self.samples_per_packet = int(self.SAMPLING_RATE * self.PACKET_LENGTH / 1000) # 100ms for a sampling rate of 16kHz -> samples_per_packet = 1600
         
 
-        print("Init mic input")
+        self._logger.debug("Init mic input")
         FORMAT = pyaudio.paInt16
         CHANNELS = 1
 
@@ -113,12 +127,12 @@ class GoogleVoiceRecognition:
                             channels = CHANNELS, 
                             rate = self.SAMPLING_RATE, 
                             input = True,
-                            output = True,
+                            output = False,
                             frames_per_buffer = self.samples_per_packet)
                             
         self._mic_isinit = True
         
-        print("Ready to record")
+        self._logger.debug("Ready to record")
 
 
     def mic(self, seconds=2):
@@ -126,7 +140,7 @@ class GoogleVoiceRecognition:
         if not self._mic_isinit:
             self.init_mic()
 
-        print("Recording for " + str(seconds) + "s...")
+        self._logger.debug("Recording for " + str(seconds) + "s...")
 
         encoded_stream = "" 
 
@@ -137,10 +151,11 @@ class GoogleVoiceRecognition:
         t0 = datetime.now()
         res = self.request_recognition(encoded_stream, SPEEX_CONTENT)
 
-        print("DEBUG: recognition request duration: " + str((datetime.now() - t0).microseconds / 1000) + "ms.")
+        self._logger.debug("Recognition request duration: " + str((datetime.now() - t0).microseconds / 1000) + "ms.")
 
+        self._logger.debug(str(res))
         if res['status'] != STATUS_OK:
-            print("We could not recognize the sentence!")
+            self._logger.warning("We could not recognize the sentence!")
 
         return [a['utterance'].encode('utf-8') for a in res['hypotheses']]
 
@@ -153,14 +168,14 @@ class GoogleVoiceRecognition:
         res = self.request_recognition(sample, FLAC_CONTENT)
 
         if res['status'] != STATUS_OK:
-            print("We could not recognize the sentence! Check you're sending a FLAC file sampled at 16kHz.")
+            self._logger.warning("We could not recognize the sentence! Check you're sending a FLAC file sampled at 16kHz.")
 
         return [a['utterance'].encode('utf-8') for a in res['hypotheses']]
 
 
     def request_recognition(self, data, contenttype = SPEEX_CONTENT):
 
-        print("Sending the audio content to Google servers...")
+        self._logger.debug("Sending the audio content to Google servers...")
 
         headers = {'Content-Type': contenttype + '; rate=' + str(self.SAMPLING_RATE)}
 
