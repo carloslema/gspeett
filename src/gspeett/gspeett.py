@@ -114,8 +114,8 @@ class GoogleVoiceRecognition:
         self._speex_encoder = speex.Encoder()
         self._speex_encoder.initialize(speex.SPEEX_MODEID_WB, quality = 8, vbr = 1) # Initialize encoder as in Google Chromium (-> audio_encoder.cc): wide band, q8, vbr
 
-        self.VOLUME_THRESHOLD = 70 # Volume threshold, for silence detection
-        self.SECONDS_SILENCE_BEFORE_STOP = 0.6 #After this amount of detected silence, the mic recording stops
+        self.VOLUME_THRESHOLD = 0 # Volume threshold, for silence detection. It is computed before each recording.
+        self.SECONDS_SILENCE_BEFORE_STOP = 0.5 #After this amount of detected silence, the mic recording stops
         
         self._SILENCE_SAMPLE_BUFFER_SIZE = 30 #Amount of sample to observe before positively detecting a silence.
         
@@ -171,6 +171,16 @@ class GoogleVoiceRecognition:
         
         for i in range(8):
             self._stream.read(self.samples_per_packet) #Read some sample to let the mic settle down
+
+        # Read some samples to compute average background noise
+        noise_level = 0
+        samples_for_noise_measurement = 10
+        for i in range(samples_for_noise_measurement):
+            data = self._stream.read(self.samples_per_packet)
+            noise_level += audioop.rms(data, 2)
+        self.VOLUME_THRESHOLD = int(noise_level / samples_for_noise_measurement) + 20
+        self._logger.debug("Measured average noise level: " + str(self.VOLUME_THRESHOLD))
+
         
         if auto_detect_end:
             seconds = 6
