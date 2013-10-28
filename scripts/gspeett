@@ -6,84 +6,52 @@ import logging
 logger = logging.getLogger('gspeett')
 logger.setLevel(logging.INFO)
 
-## Configure logger
 log_handler = logging.StreamHandler()
 formatter = logging.Formatter("%(message)s")
-# add formatter to log_handler
 log_handler.setFormatter(formatter)
-# add log_handler to logger
 logger.addHandler(log_handler)
-### end of logger configuration
 
-import getopt
 import sys
+import argparse
 
 from gspeett import gspeett
 
-def usage():
-    print """The LAAS-CNRS 'gSpett' module (v.""" + gspeett.GSPEETT_VERSION + """).
+def version():
+    print("gSpeett %s" % gspeett.GSPEETT_VERSION)
 
-Usage:
-gspeett [OPTIONS]
-  -h, --help			Displays this message and exits
-  -v, --version			Returns gSpeett version
-  -d, --debug			Sets verbosity to debug
-  -f, --flac=			Specifies a FLAC 16kHZ encoded file to convert
-  -m, --micro			Records from the microphone (default)
-  --duration=			Recording duration, in seconds
-             			(only with microphone, default: auto)
-  --continuous			Records and recognizes in loop
-  -l, --lang=			Sets the input speech language (default: en-US)
 
-Under default operation, this module records 6 seconds of voice from the system
-microphone, and submits it to the Google Speech Recognition service.
+
+parser = argparse.ArgumentParser(description='Python bindings for Google speech recognition service',               epilog="""Under default operation, this module records 6 seconds of voice from the system microphone, and submits it to the Google Speech Recognition service.
 
 The result of the conversion is output on stdout.
+""")
+parser.add_argument('-v', '--version', action='version',
+                    version=version(), help='returns gSpeett version')
+parser.add_argument('-q', '--quiet', action='store_true',
+                            help='be quiet (only errors are reported)')
+parser.add_argument('-d', '--debug', action='store_true',
+                            help='enables verbose output')
+parser.add_argument('-f', '--flac', default="", nargs='?',
+                            help='specifies a FLAC 16kHZ encoded file to convert. If not specified, record from microphone')
+parser.add_argument('--duration', default=6, type=int,
+                                help='recording duration, in seconds (when using mic). If not set, detect silence to stop recording.')
+parser.add_argument('--continuous', action='store_true',
+                            help='records and recognizes in loop')
+parser.add_argument('-l', '--lang', default="en-US", nargs='?', help="sets the input speech language (default: en-US)")
 
-Options details:
-  -d: prints some debug informations.
-  -f: allows to pass a FLAC file instead of recording from the microphone
-  --duration: when using the microphone, specifies the length of the recording
-              in seconds. If not set, gSpeett will automatically try to detect
-              the end of the speech.
-  -l: specify the input language (IETF language code. E.g.: fr-FR, de, en-US...)
-"""
+args = parser.parse_args()
 
+duration = args.duration
+input_lang = args.lang
+flac_path = args.flac
+loop = args.continuous
 
-try:
-    optlist, args = getopt.getopt(sys.argv[1:], 'hvdf:ml:', ['help', 'version', 'debug', 'flac=', 'micro', 'duration=', 'continuous', 'lang='])
-except getopt.GetoptError, err:
-    # print help information and exit:
-    print str(err) # will print something like "option -a not recognized"
-    usage()
-    sys.exit(2)
-
-duration = 0
-input_lang = "en-US"
-flac_path = None
-loop = False
-
-for o, a in optlist:
-    if o in ("-h", "--help"):
-        usage()
-        sys.exit(0)
-    elif o in ("-v", "--version"):
-        print("gSpeett " + gspeett.GSPEETT_VERSION)
-        sys.exit(0)
-    elif o in ("-d", "--debug"):
-        logger.setLevel(logging.DEBUG)
-    elif o in ("-f", "--flac"):
-        flac_path = a
-    elif o in ("-l", "--lang"):
-        input_lang = a
-    elif o in ("--duration"):
-        duration = int(a)
-    elif o in ("--continuous"):
-        loop = True
-    else:
-        print "Unhandled option " + o
-        usage()
-        sys.exit(2)
+if args.debug:
+    logger.setLevel(logging.DEBUG)
+elif args.quiet:
+    logger.setLevel(logging.ERROR)
+else:
+    logger.setLevel(logging.INFO)
 
 t = None
 
