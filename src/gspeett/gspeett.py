@@ -112,7 +112,7 @@ class GoogleVoiceRecognition:
 
         self._logger.debug("Init speex")
         self._speex_encoder = speex.Encoder()
-        self._speex_encoder.initialize(speex.SPEEX_MODEID_WB, quality = 8, vbr = 1) # Initialize encoder as in Google Chromium (-> audio_encoder.cc): wide band, q8, vbr
+        self._speex_encoder.initialize(quality = 8, vbr = 1) # Initialize encoder as in Google Chromium (-> audio_encoder.cc): wide band, q8, vbr
 
         self.VOLUME_THRESHOLD = 0 # Volume threshold, for silence detection. It is computed before each recording.
         self.SECONDS_SILENCE_BEFORE_STOP = 0.5 #After this amount of detected silence, the mic recording stops

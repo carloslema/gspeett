@@ -1,8 +1,15 @@
 from ctypes import *
+import ctypes.util
 import sys
 import logging
 
-speexDll = CDLL("/usr/lib/libspeex.so.1")
+libspeex_name = ctypes.util.find_library('speex')
+
+if not libspeex_name:
+    logging.getLogger('gspeett').critical("libspeex not found! Is it installed?")
+    sys.exit(1)
+
+speexDll = CDLL(libspeex_name)
 
 #defines copied from: http://speex.org/docs/api/speex-api-reference/group__Codec.html
 SPEEX_SET_ENH = 0                   #Set enhancement on/off (decoder only)
@@ -74,11 +81,11 @@ class SpeexBits(Structure):
                 ]
 
 class Encoder:
-    def initialize(self, mode=SPEEX_MODEID_UWB, quality = 5, vbr = 0):
+    def initialize(self, quality = 5, vbr = 0):
         self.bits = SpeexBits()
         speexDll.speex_bits_init(byref(self.bits))
 
-        self.state = speexDll.speex_encoder_init(speexDll.speex_lib_get_mode(mode))
+        self.state = speexDll.speex_encoder_init(speexDll.speex_wb_mode)
 
         self.samples_per_frame = self.control(SPEEX_GET_FRAME_SIZE)
         if self.samples_per_frame <= 0:
