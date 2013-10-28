@@ -13,7 +13,7 @@ import urllib
 import json
 import re, htmlentitydefs
 
-GSPEETT_VERSION="1.2"
+GSPEETT_VERSION="1.3"
 
 RECOGNIZE_URL= "http://www.google.com/speech-api/v1/recognize?xjerr=1&client=chromium&pfilter=2&"
 

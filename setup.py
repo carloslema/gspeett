@@ -5,13 +5,12 @@ import os
 from distutils.core import setup
 
 setup(name='gSpeett',
-      version='1.2',
+      version='1.3',
       license='BSD',
       description='Python bindings to the Google speech recognition service',
       long_description='gSpeett offers a very simple Python API to the Google speech recognition service. It supports FLAC files or microphone input (with Speex encoding)',
-      author='OpenRobots team',
-      author_email='openrobots@laas.fr',
-      url='http://www.openrobots.org',
+      author='Séverin Lemaignan',
+      author_email='severin.lemaignan@epfl.ch',
       package_dir = {'': 'src'},
       packages=['gspeett'],
       scripts=['scripts/gspeett']
