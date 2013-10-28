@@ -57,7 +57,7 @@ Options details:
 
 
 try:
-    optlist, args = getopt.getopt(sys.argv[1:], 'hvdf:ml:', ['help', 'version', 'debug', 'flac=', 'micro', 'duration=', 'continous', 'lang=', 'output-lang='])
+    optlist, args = getopt.getopt(sys.argv[1:], 'hvdf:ml:', ['help', 'version', 'debug', 'flac=', 'micro', 'duration=', 'continuous', 'lang=', 'output-lang='])
 except getopt.GetoptError, err:
     # print help information and exit:
     print str(err) # will print something like "option -a not recognized"
@@ -85,7 +85,7 @@ for o, a in optlist:
         input_lang = a
     elif o in ("--duration"):
         duration = int(a)
-    elif o in ("--continous"):
+    elif o in ("--continuous"):
         loop = True
     elif o in ("--output-lang"):
         output_lang = a
