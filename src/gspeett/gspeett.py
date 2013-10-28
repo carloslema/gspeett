@@ -32,63 +32,6 @@ STATUS_BAD_GRAMMAR = 6
 SPEEX_CONTENT= "audio/x-speex-with-header-byte"
 FLAC_CONTENT= "audio/x-flac"
 
-class GoogleTranslator:
-
-    def __init__(self, google_api_key, to = "en"):
-        if to:
-            to = to.split("-")[0] # convert en-US -> en
-            
-        self.to = to
-        self._key = google_api_key
-
-    def translate(self, text, to=None):
-        
-        if to:
-            to = to.split("-")[0] # convert en-US -> en
-            
-        text = text.decode('utf-8')
-        text = text.encode('ascii', 'ignore')
-        url = "https://www.googleapis.com/language/translate/v2?"
-        values = urllib.urlencode(
-                {"key": self._key,
-                 "target": (to if to else self.to),
-                 "q": text})
-
-        url += values
-        logging.getLogger('gspeett').debug(url)
-        response = urllib2.urlopen(urllib2.Request(url))
-
-        return self.unescape(urllib.unquote(json.load(response)['data']['translations'][0]['translatedText']))
-        
-        ##
-        # Removes HTML or XML character references and entities from a text string.
-        #
-        # @param text The HTML (or XML) source text.
-        # @return The plain text, as a Unicode string, if necessary.
-        #
-        # Taken from http://effbot.org/
-
-    def unescape(self, text):
-        def fixup(m):
-            text = m.group(0)
-            if text[:2] == "&#":
-                # character reference
-                try:
-                    if text[:3] == "&#x":
-                        return unichr(int(text[3:-1], 16))
-                    else:
-                        return unichr(int(text[2:-1]))
-                except ValueError:
-                    pass
-            else:
-                # named entity
-                try:
-                    text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
-                except KeyError:
-                    pass
-            return text # leave as is
-        return re.sub("&#?\w+;", fixup, text)
-
 class GoogleVoiceRecognition:
 
     def __init__(self, lang=LANG_EN):
